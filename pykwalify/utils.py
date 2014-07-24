@@ -53,6 +53,7 @@ def str2bool(v):
     elif v.lower() in ("no", "false", "f", "0", "null", "none"):
         return False
     else:
+        v = v.encode('unicode_escape')
         raise Exception("Could not convert boolean to True/False value. Value: {}".format(v))
 
 

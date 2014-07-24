@@ -73,7 +73,7 @@ class Core(object):
 
                     for key in data.keys():
                         if key in schema_data.keys():
-                            raise CoreError("Parsed key : {} : two times in schema files...".format(key))
+                            raise CoreError("Parsed key : {} : two times in schema files...".format(key.encode('unicode_escape')))
 
                     schema_data = dict(schema_data, **data)
 
@@ -154,7 +154,7 @@ class Core(object):
         Log.debug(u" ? Map: {}".format(rule._mapping))
 
         if rule._required and self.source is None:
-            raise CoreError("required.novalue : {}".format(path))
+            raise CoreError("required.novalue : {}".format(path.encode('unicode_escape')))
 
         Log.debug(u" ? ValidateRule: {}".format(rule))
         n = len(errors)
@@ -172,13 +172,13 @@ class Core(object):
 
     def _validate_include(self, value, rule, path, errors=[], done=None):
         if rule._include_name is None:
-            errors.append("Include name not valid : {} : {}".format(path, value))
+            errors.append(u"Include name not valid : {} : {}".format(path, value))
             return
 
         include_name = rule._include_name
         partial_schema_rule = pykwalify.partial_schemas.get(include_name, None)
         if not partial_schema_rule:
-            errors.append("No partial schema found for name : {} : Existing partial schemas: {}".format(include_name, ", ".join(sorted(pykwalify.partial_schemas.keys()))))
+            errors.append(u"No partial schema found for name : {} : Existing partial schemas: {}".format(include_name, ", ".join(sorted(pykwalify.partial_schemas.keys()))))
             return
 
         self._validate(value, partial_schema_rule, path, errors, done)
@@ -192,10 +192,11 @@ class Core(object):
         Log.debug(u" * Seq: {}".format(rule._sequence))
         Log.debug(u" * Map: {}".format(rule._mapping))
 
+        path_esc = path.encode('unicode_escape')
         if not isinstance(rule._sequence, list):
-            raise CoreError("sequence data not of list type : {}".format(path))
+            raise CoreError("sequence data not of list type : {}".format(path_esc))
         if not len(rule._sequence) == 1:
-            raise CoreError("only 1 item allowed in sequence rule : {}".format(path))
+            raise CoreError("only 1 item allowed in sequence rule : {}".format(path_esc))
 
         if value is None:
             Log.debug("Core seq: sequence data is None")
@@ -205,7 +206,7 @@ class Core(object):
         for i, item in enumerate(value):
             # Validate recursivley
             Log.debug(u"Core seq: validating recursivley: {}".format(r))
-            self._validate(item, r, "{}/{}".format(path, i), errors, done)
+            self._validate(item, r, u"{}/{}".format(path, i), errors, done)
 
         Log.debug("Core seq: validation recursivley done...")
 
@@ -241,9 +242,7 @@ class Core(object):
                         if val is None:
                             continue
                         if val in table:
-                            curr_path = "{}/{}/{}".format(path, j, k)
-                            prev_path = "{}/{}/{}".format(path, table[val], k)
-                            errors.append("value.notunique :: value: {} : {}".format(k, path))
+                            errors.append(u"value.notunique :: value: {} : {}".format(k, path))
         elif r._unique:
             Log.debug("Found unique value in sequence")
             table = {}
@@ -252,9 +251,9 @@ class Core(object):
                     continue
 
                 if val in table:
-                    curr_path = "{}/{}".format(path, j)
-                    prev_path = "{}/{}".format(path, table[val])
-                    errors.append("value.notunique :: value: {} : {} : {}".format(val, curr_path, prev_path))
+                    curr_path = u"{}/{}".format(path, j)
+                    prev_path = u"{}/{}".format(path, table[val].encode('unicode_escape'))
+                    errors.append(u"value.notunique :: value: {} : {} : {}".format(val, curr_path, prev_path))
                 else:
                     table[val] = j
 
@@ -279,7 +278,7 @@ class Core(object):
             return
 
         if not isinstance(value, dict):
-            errors.append("mapping.value.notdict : {} : {}".format(value, path))
+            errors.append(u"mapping.value.notdict : {} : {}".format(value, path))
             return
 
         m = rule._mapping
@@ -299,7 +298,7 @@ class Core(object):
 
         for k, rr in m.items():
             if rr._required and k not in value:
-                errors.append("required.nokey : {} : {}".format(k, path))
+                errors.append(u"required.nokey : {} : {}".format(k, path))
             if k not in value and rr._default is not None:
                 value[k] = rr._default
 
@@ -317,17 +316,17 @@ class Core(object):
                 for mm in regex_mappings:
                     if mm[1]:
                         Log.debug(u" + Matching regex patter: {}".format(mm[0]))
-                        self._validate(v, mm[0], "{}/{}".format(path, k), errors, done)
+                        self._validate(v, mm[0], u"{}/{}".format(path, k), errors, done)
             elif r is None:
                 if not rule._allowempty_map:
-                    errors.append("key.undefined : {} : {}".format(k, path))
+                    errors.append(u"key.undefined : {} : {}".format(k, path))
             else:
                 if not r._schema:
                     # validate recursively
                     Log.debug(u"Core Map: validate recursively: {}".format(r))
-                    self._validate(v, r, "{}/{}".format(path, k), errors, done)
+                    self._validate(v, r, u"{}/{}".format(path, k), errors, done)
                 else:
-                    print(" * Something is ignored Oo : {}".format(r))
+                    print(u" * Something is ignored Oo : {}".format(r))
 
     def _validate_scalar(self, value, rule, path, errors=[], done=None):
         Log.debug("Validate scalar")
@@ -346,7 +345,7 @@ class Core(object):
 
         if rule._enum is not None:
             if value not in rule._enum:
-                errors.append("enum.notexists : {} : {}".format(value, path))
+                errors.append(u"enum.notexists : {} : {}".format(value, path))
 
         # Set default value
         if rule._default and value is None:
@@ -360,7 +359,7 @@ class Core(object):
         if rule._pattern is not None:
             res = re.match(rule._pattern, str(value))
             if res is None:  # Not matching
-                errors.append("pattern.unmatch : {} --> {} : {}".format(rule._pattern, value, path))
+                errors.append(u"pattern.unmatch : {} --> {} : {}".format(rule._pattern, value, path))
 
         if rule._range is not None:
             if not isScalar(value):
@@ -391,13 +390,13 @@ class Core(object):
             L = len(value)
 
             if l.get("max", None) is not None and l["max"] < L:
-                errors.append("length.toolong : {} < {} : {}".format(l["max"], L, path))
+                errors.append(u"length.toolong : {} < {} : {}".format(l["max"], L, path))
             if l.get("min", None) is not None and l["min"] > L:
-                errors.append("length.tooshort : {} > {} : {}".format(l["min"], L, path))
+                errors.append(u"length.tooshort : {} > {} : {}".format(l["min"], L, path))
             if l.get("max-ex", None) is not None and l["max-ex"] <= L:
-                errors.append("length.toolong-ex : {} <= {} : {}".format(l["max-ex"], L, path))
+                errors.append(u"length.toolong-ex : {} <= {} : {}".format(l["max-ex"], L, path))
             if l.get("min-ex", None) is not None and l["min-ex"] >= L:
-                errors.append("length.tooshort-ex : {} >= {} : {}".format(l["min-ex"], L, path))
+                errors.append(u"length.tooshort-ex : {} >= {} : {}".format(l["min-ex"], L, path))
 
     def _validate_range(self, max_, min_, max_ex, min_ex, errors, value, path, prefix):
         ##########
@@ -409,28 +408,28 @@ class Core(object):
                 raise Exception("INTERNAL ERROR: variable 'max' not of 'int' type")
 
             if max_ <= value:
-                errors.append("{}.range.toolarge : {} < {} : {}".format(prefix, max_, value, path))
+                errors.append(u"{}.range.toolarge : {} < {} : {}".format(prefix, max_, value, path))
 
         if min_ is not None:
             if not isinstance(min_, int):
                 raise Exception("INTERNAL ERROR: variable 'min_' not of 'int' type")
 
             if min_ >= value:
-                errors.append("{}.range.toosmall : {} > {} : {}".format(prefix, min_, value, path))
+                errors.append(u"{}.range.toosmall : {} > {} : {}".format(prefix, min_, value, path))
 
         if max_ex is not None:
             if not isinstance(max_ex, int):
                 raise Exception("INTERNAL ERROR: variable 'max_ex' not of 'int' type")
 
             if max_ex < value:
-                errors.append("{}.range.tolarge-ex : {} <= {} : {}".format(prefix, max_ex, value, path))
+                errors.append(u"{}.range.tolarge-ex : {} <= {} : {}".format(prefix, max_ex, value, path))
 
         if min_ex is not None:
             if not isinstance(min_ex, int):
                 raise Exception("INTERNAL ERROR: variable 'min_ex' not of 'int' type")
 
             if min_ex > value:
-                errors.append("{}.range.toosmall-ex : {} >= {} : {}".format(prefix, min_ex, value, path))
+                errors.append(u"{}.range.toosmall-ex : {} >= {} : {}".format(prefix, min_ex, value, path))
 
     def _validate_scalar_type(self, value, t, errors, path):
         Log.debug(u"Core scalar: validating scalar type : {}".format(t))
@@ -438,7 +437,9 @@ class Core(object):
 
         try:
             if not tt[t](value):
-                errors.append("Value: {} is not of type '{}' : {}".format(value, t, path))
+                errors.append(u"Value: {} is not of type '{}' : {}".format(value, t, path))
         except Exception:
             # Type not found in map
+            path = path.encode('unicode_escape')
+            value = value.encode('unicode_escape')
             raise Exception("Unknown type check: {} : {} : {}".format(path, value, t))
