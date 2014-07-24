@@ -106,7 +106,7 @@ class Core(object):
         else:
             Log.error("validation.invalid")
             Log.error(" --- All found errors ---")
-            errors = [e.escape('unicode_escape') for e in errors]
+            errors = [e.encode('unicode_escape') for e in errors]
             Log.error(errors)
             if raise_exception:
                 raise SchemaError("validation.invalid : {}".format(errors))
