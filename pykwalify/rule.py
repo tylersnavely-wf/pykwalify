@@ -55,7 +55,7 @@ class Rule(object):
         return "Rule: {}".format(str(self._schema_str))
 
     def init(self, schema, path):
-        Log.debug("Init schema: {}".format(schema))
+        Log.debug(u"Init schema: {}".format(schema))
 
         include = schema.get("include", None)
 
@@ -65,12 +65,13 @@ class Rule(object):
             self._include_name = include
             return
 
+        path_esc = path.encode('unicode_escape')
         if schema is not None:
             if "type" not in schema:
-                raise RuleError("key 'type' not found in schema rule : {}".format(path))
+                raise RuleError("key 'type' not found in schema rule : {}".format(path_esc))
             else:
                 if not isinstance(schema["type"], str):
-                    raise RuleError("key 'type' in schema rule is not a string type : {}".format(path))
+                    raise RuleError("key 'type' in schema rule is not a string type : {}".format(path_esc))
 
                 self._type = schema["type"]
 
@@ -107,13 +108,13 @@ class Rule(object):
                 Log.debug("Found schema tag...")
                 raise RuleError("Schema is only allowed on top level of schema file...")
             else:
-                raise RuleError("Unknown key: {} found : {}".format(k, path))
+                raise RuleError("Unknown key: {} found : {}".format(k.encode('unicode_escape'), path_esc))
 
         self.checkConfliction(schema, rule, path)
 
     def initMatchingRule(self, v, rule, path):
-        Log.debug("Init matching-rule: {}".format(path))
-        Log.debug("{} {}".format(v, rule))
+        Log.debug(u"Init matching-rule: {}".format(path))
+        Log.debug(u"{} {}".format(v, rule))
 
         # Verify that the provided rule is part of one of the allowed one
         allowed = ["any"]
@@ -124,64 +125,66 @@ class Rule(object):
             self._matching_rule = v
 
     def initAllowEmptyMap(self, v, rule, path):
-        Log.debug("Init allow empty value: {}".format(path))
-        Log.debug("Type: {} : {}".format(v, rule))
+        Log.debug(u"Init allow empty value: {}".format(path))
+        Log.debug(u"Type: {} : {}".format(v, rule))
 
         self._allowempty_map = v
 
     def initTypeValue(self, v, rule, path):
-        Log.debug("Init type value : {}".format(path))
-        Log.debug("Type: {} {}".format(v, rule))
+        Log.debug(u"Init type value : {}".format(path))
+        Log.debug(u"Type: {} {}".format(v, rule))
 
         if v is None:
             v = DEFAULT_TYPE
 
+        path_esc = path.encode('unicode_escape')
         if not isinstance(v, str):
-            raise RuleError("type.nostr : {} : {}".format(v, path))
+            raise RuleError("type.nostr : {} : {}".format(v, path_esc))
 
         self._type = v
         self._type_class = typeClass(v)
 
         if not isBuiltinType(self._type):
-            raise RuleError("type.unknown : {} : {}".format(self._type, path))
+            raise RuleError("type.unknown : {} : {}".format(self._type, path_esc))
 
     def initNameValue(self, v, rule, path):
-        Log.debug("Init name value : {}".format(path))
+        Log.debug(u"Init name value : {}".format(path))
 
         self._name = str(v)
 
     def initDescValue(self, v, rule, path):
-        Log.debug("Init descr value : {}".format(path))
+        Log.debug(u"Init descr value : {}".format(path))
 
         self._desc = str(v)
 
     def initRequiredValue(self, v, rule, path):
-        Log.debug("Init required value : {}".format(path))
+        Log.debug(u"Init required value : {}".format(path))
 
         if not isinstance(v, bool):
-            raise RuleError("required.notbool : {} : {}".format(v, path))
+            raise RuleError(u"required.notbool : {} : {}".format(v, path))
         self._required = v
 
     def initPatternValue(self, v, rule, path):
-        Log.debug("Init pattern value : {}".format(path))
+        Log.debug(u"Init pattern value : {}".format(path))
 
         if not isinstance(v, str):
-            raise RuleError("pattern.notstr : {} : {}".format(v, path))
+            raise RuleError(u"pattern.notstr : {} : {}".format(v, path))
 
         self._pattern = v
 
+        path_esc = path.encode('unicode_escape')
         if self._schema_str["type"] == "map":
-            raise RuleError("map.pattern : pattern not allowed inside map : {} : {}".format(v, path))
+            raise RuleError("map.pattern : pattern not allowed inside map : {} : {}".format(v, path_esc))
 
         # TODO: Some form of validation of the regexp? it exists in the source
 
         try:
             self._pattern_regexp = re.compile(self._pattern)
         except Exception:
-            raise RuleError("pattern.syntaxerr : {} --> {} : {}".format(self._pattern_regexp, self._pattern_regexp, path))
+            raise RuleError("pattern.syntaxerr : {} --> {} : {}".format(self._pattern_regexp, self._pattern_regexp, path_esc))
 
     def initEnumValue(self, v, rule, path):
-        Log.debug("Init enum value : {}".format(path))
+        Log.debug(u"Init enum value : {}".format(path))
 
         if not isinstance(v, list):
             raise RuleError("enum.notseq")
@@ -190,6 +193,7 @@ class Rule(object):
         if isCollectionType(self._type):
             raise RuleError("enum.notscalar")
 
+        path = path.encode('unicode_escape')
         lookup = set()
         for item in v:
             if not isinstance(item, self._type_class):
@@ -201,18 +205,19 @@ class Rule(object):
             lookup.add(item)
 
     def initAssertValue(self, v, rule, path):
-        Log.debug("Init assert value : {}".format(path))
+        Log.debug(u"Init assert value : {}".format(path))
 
         if not isinstance(v, str):
-            raise RuleError("assert.notstr : {}".format(path))
+            raise RuleError(u"assert.notstr : {}".format(path))
 
         self._assert = v
 
-        raise RuleError("assert.NYI-Error : {}".format(path))
+        raise RuleError(u"assert.NYI-Error : {}".format(path))
 
     def initRangeValue(self, v, rule, path):
-        Log.debug("Init range value : {}".format(path))
+        Log.debug(u"Init range value : {}".format(path))
 
+        path = path.encode('unicode_escape')
         if not isinstance(v, dict):
             raise RuleError("range.notmap : {} : {}".format(v, path))
         if self._type not in ["str", "int", "map", "seq"]:
@@ -247,8 +252,9 @@ class Rule(object):
                 raise RuleError("range.maxexleminex : {} <= {} : {}".format(max_ex, min_ex, path))
 
     def initLengthValue(self, v, rule, path):
-        Log.debug("Init length value : {}".format(path))
+        Log.debug(u"Init length value : {}".format(path))
 
+        path = path.encode('unicode_escape')
         if not isinstance(v, dict):
             raise RuleError("length.notmap : {} : {}".format(v, path))
 
@@ -287,8 +293,9 @@ class Rule(object):
                 raise RuleError("length.maxexleminex : {} <= {} : {}".format(max_ex, min_ex, path))
 
     def initIdentValue(self, v, rule, path):
-        Log.debug("Init ident value : {}".format(path))
+        Log.debug(u"Init ident value : {}".format(path))
 
+        path = path.encode('unicode_escape')
         if v is None or isinstance(v, bool):
             raise RuleError("ident.notbool : {} : {}".format(v, path))
 
@@ -303,8 +310,9 @@ class Rule(object):
             raise RuleError("ident.notmap : {}".format(path))
 
     def initUniqueValue(self, v, rule, path):
-        Log.debug("Init unique value : {}".format(path))
+        Log.debug(u"Init unique value : {}".format(path))
 
+        path = path.encode('unicode_escape')
         if not isinstance(v, bool):
             raise RuleError("unique.notbool : {} : {}".format(v, path))
 
@@ -316,17 +324,18 @@ class Rule(object):
             raise RuleError("unique.onroot")
 
     def initSequenceValue(self, v, rule, path):
-        Log.debug("Init sequence value : {}".format(path))
+        Log.debug(u"Init sequence value : {}".format(path))
 
+        path_esc = path.encode('unicode_escape')
         if v is not None and not isinstance(v, list):
-            raise RuleError("sequence.notseq : {} : {}".format(v, path))
+            raise RuleError("sequence.notseq : {} : {}".format(v, path_esc))
 
         self._sequence = v
 
         if self._sequence is None or len(self._sequence) == 0:
-            raise RuleError("sequence.noelem : {} : {}".format(self._sequence, path))
+            raise RuleError("sequence.noelem : {} : {}".format(self._sequence, path_esc))
         if len(self._sequence) > 1:
-            raise RuleError("sequence.toomany : {} : {}".format(self._sequence, path))
+            raise RuleError("sequence.toomany : {} : {}".format(self._sequence, path_esc))
 
         elem = self._sequence[0]
         if elem is None:
@@ -342,13 +351,14 @@ class Rule(object):
         return rule
 
     def initMappingValue(self, v, rule, path):
-        Log.debug("Init mapping value : {}".format(path))
+        Log.debug(u"Init mapping value : {}".format(path))
 
+        path_esc = path.encode('unicode_escape')
         if v is not None and not isinstance(v, dict):
-            raise RuleError("mapping.notmap : {} : {}".format(v, path))
+            raise RuleError("mapping.notmap : {} : {}".format(v, path_esc))
 
         if v is None or len(v) == 0:
-            raise RuleError("mapping.noelem : {} : {}".format(v, path))
+            raise RuleError("mapping.noelem : {} : {}".format(v, path_esc))
 
         self._mapping = {}
         self._regex_mappings = []
@@ -359,7 +369,7 @@ class Rule(object):
 
             # Check if this is a regex rule. Handle specially
             if k.startswith("regex;"):
-                Log.debug("Found regex map rule")
+                Log.debug(u"Found regex map rule")
                 regex = k.split(";", 1)
                 if len(regex) != 2:
                     raise RuleError("Malformed regex key : {}".format(k))
@@ -383,9 +393,11 @@ class Rule(object):
         return rule
 
     def initDefaultValue(self, v, rule, path):
-        Log.debug("Init default value : {}".format(path))
+        Log.debug(u"Init default value : {}".format(path))
         self._default = v
 
+        path = path.encode('unicode_escape')
+        rule = rule.encode('unicode_escape')
         if isCollectionType(self._type):
             raise RuleError("default.notscalar : {} : {} : {}".format(rule, path, v))
 
@@ -396,8 +408,9 @@ class Rule(object):
             raise RuleError("default.type.unmatch : {} --> {} : {}".format(v, self._type_class, path))
 
     def checkConfliction(self, schema, rule, path):
-        Log.debug("Checking for conflicts : {}".format(path))
+        Log.debug(u"Checking for conflicts : {}".format(path))
 
+        path = path.encode('unicode_escape')
         if self._type == "seq":
             if "sequence" not in schema:
                 raise SchemaConflict("seq.nosequence")

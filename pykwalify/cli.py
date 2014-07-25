@@ -84,9 +84,9 @@ optional arguments:
             for handler in l.handlers:
                 handler.level = level
 
-    Log.debug("Setting verbose level: {}".format(args["--verbose"]))
+    Log.debug(u"Setting verbose level: {}".format(args["--verbose"]))
 
-    Log.debug("Arguments from CLI: {}".format(args))
+    Log.debug(u"Arguments from CLI: {}".format(args))
 
     #####
     ##### 3. parse cli arguments

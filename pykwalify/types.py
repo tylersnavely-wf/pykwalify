@@ -11,7 +11,7 @@ import datetime
 
 DEFAULT_TYPE = "str"
 
-_types = {"str": str,
+_types = {"str": basestring,
           "int": int,
           "float": float,
           "number": None,
@@ -58,7 +58,7 @@ def isCorrectType(obj, type):
 
 
 def isString(obj):
-    return isinstance(obj, str)
+    return isinstance(obj, basestring)
 
 
 def isInt(obj):

@@ -27,10 +27,10 @@ class Core(object):
     """ Core class of pyKwalify """
 
     def __init__(self, source_file=None, schema_files=[], source_data=None, schema_data=None):
-        Log.debug("source_file: {}".format(source_file))
-        Log.debug("schema_file: {}".format(schema_files))
-        Log.debug("source_data: {}".format(source_data))
-        Log.debug("schema_data: {}".format(schema_data))
+        Log.debug(u"source_file: {}".format(source_file))
+        Log.debug(u"schema_file: {}".format(schema_files))
+        Log.debug(u"source_data: {}".format(source_data))
+        Log.debug(u"schema_data: {}".format(schema_data))
 
         self.source = None
         self.schema = None
@@ -73,7 +73,7 @@ class Core(object):
 
                     for key in data.keys():
                         if key in schema_data.keys():
-                            raise CoreError("Parsed key : {} : two times in schema files...".format(key))
+                            raise CoreError("Parsed key : {} : two times in schema files...".format(key.encode('unicode_escape')))
 
                     schema_data = dict(schema_data, **data)
 
@@ -106,6 +106,7 @@ class Core(object):
         else:
             Log.error("validation.invalid")
             Log.error(" --- All found errors ---")
+            errors = [e.encode('unicode_escape') for e in errors]
             Log.error(errors)
             if raise_exception:
                 raise SchemaError("validation.invalid : {}".format(errors))
@@ -125,9 +126,9 @@ class Core(object):
         # Look for schema; tags so they can be parsed before the root rule is parsed
         for k, v in self.schema.items():
             if k.startswith("schema;"):
-                Log.debug("Found partial schema; : {}".format(v))
+                Log.debug(u"Found partial schema; : {}".format(v))
                 r = Rule(schema=v)
-                Log.debug(" Partial schema : {}".format(r))
+                Log.debug(u" Partial schema : {}".format(r))
                 pykwalify.partial_schemas[k.split(";", 1)[1]] = r
             else:
                 # readd all items that is not schema; so they can be parsed
@@ -139,23 +140,23 @@ class Core(object):
         root_rule = Rule(schema=self.schema)
         self.root_rule = root_rule
         Log.debug("Done building root rule")
-        Log.debug("Root rule: {}".format(self.root_rule))
+        Log.debug(u"Root rule: {}".format(self.root_rule))
 
         self._validate(value, root_rule, path, errors, done)
 
         return errors
 
     def _validate(self, value, rule, path, errors, done):
-        Log.debug("{}".format(rule))
+        Log.debug(u"{}".format(rule))
         Log.debug("Core validate")
-        Log.debug(" ? Rule: {}".format(rule._type))
-        Log.debug(" ? Seq: {}".format(rule._sequence))
-        Log.debug(" ? Map: {}".format(rule._mapping))
+        Log.debug(u" ? Rule: {}".format(rule._type))
+        Log.debug(u" ? Seq: {}".format(rule._sequence))
+        Log.debug(u" ? Map: {}".format(rule._mapping))
 
         if rule._required and self.source is None:
-            raise CoreError("required.novalue : {}".format(path))
+            raise CoreError("required.novalue : {}".format(path.encode('unicode_escape')))
 
-        Log.debug(" ? ValidateRule: {}".format(rule))
+        Log.debug(u" ? ValidateRule: {}".format(rule))
         n = len(errors)
         if rule._include_name is not None:
             self._validate_include(value, rule, path, errors, done=None)
@@ -171,30 +172,31 @@ class Core(object):
 
     def _validate_include(self, value, rule, path, errors=[], done=None):
         if rule._include_name is None:
-            errors.append("Include name not valid : {} : {}".format(path, value))
+            errors.append(u"Include name not valid : {} : {}".format(path, value))
             return
 
         include_name = rule._include_name
         partial_schema_rule = pykwalify.partial_schemas.get(include_name, None)
         if not partial_schema_rule:
-            errors.append("No partial schema found for name : {} : Existing partial schemas: {}".format(include_name, ", ".join(sorted(pykwalify.partial_schemas.keys()))))
+            errors.append(u"No partial schema found for name : {} : Existing partial schemas: {}".format(include_name, ", ".join(sorted(pykwalify.partial_schemas.keys()))))
             return
 
         self._validate(value, partial_schema_rule, path, errors, done)
 
     def _validate_sequence(self, value, rule, path, errors=[], done=None):
         Log.debug("Core Validate sequence")
-        Log.debug(" * Data: {}".format(value))
-        Log.debug(" * Rule: {}".format(rule))
-        Log.debug(" * RuleType: {}".format(rule._type))
-        Log.debug(" * Path: {}".format(path))
-        Log.debug(" * Seq: {}".format(rule._sequence))
-        Log.debug(" * Map: {}".format(rule._mapping))
+        Log.debug(u" * Data: {}".format(value))
+        Log.debug(u" * Rule: {}".format(rule))
+        Log.debug(u" * RuleType: {}".format(rule._type))
+        Log.debug(u" * Path: {}".format(path))
+        Log.debug(u" * Seq: {}".format(rule._sequence))
+        Log.debug(u" * Map: {}".format(rule._mapping))
 
+        path_esc = path.encode('unicode_escape')
         if not isinstance(rule._sequence, list):
-            raise CoreError("sequence data not of list type : {}".format(path))
+            raise CoreError("sequence data not of list type : {}".format(path_esc))
         if not len(rule._sequence) == 1:
-            raise CoreError("only 1 item allowed in sequence rule : {}".format(path))
+            raise CoreError("only 1 item allowed in sequence rule : {}".format(path_esc))
 
         if value is None:
             Log.debug("Core seq: sequence data is None")
@@ -203,8 +205,8 @@ class Core(object):
         r = rule._sequence[0]
         for i, item in enumerate(value):
             # Validate recursivley
-            Log.debug("Core seq: validating recursivley: {}".format(r))
-            self._validate(item, r, "{}/{}".format(path, i), errors, done)
+            Log.debug(u"Core seq: validating recursivley: {}".format(r))
+            self._validate(item, r, u"{}/{}".format(path, i), errors, done)
 
         Log.debug("Core seq: validation recursivley done...")
 
@@ -225,8 +227,8 @@ class Core(object):
             mapping = r._mapping
             unique_keys = []
             for k, rule in mapping.items():
-                Log.debug("Key: {}".format(k))
-                Log.debug("Rule: {}".format(rule))
+                Log.debug(u"Key: {}".format(k))
+                Log.debug(u"Rule: {}".format(rule))
 
                 if rule._unique or rule._ident:
                     unique_keys.append(k)
@@ -240,9 +242,7 @@ class Core(object):
                         if val is None:
                             continue
                         if val in table:
-                            curr_path = "{}/{}/{}".format(path, j, k)
-                            prev_path = "{}/{}/{}".format(path, table[val], k)
-                            errors.append("value.notunique :: value: {} : {}".format(k, path))
+                            errors.append(u"value.notunique :: value: {} : {}".format(k, path))
         elif r._unique:
             Log.debug("Found unique value in sequence")
             table = {}
@@ -251,20 +251,20 @@ class Core(object):
                     continue
 
                 if val in table:
-                    curr_path = "{}/{}".format(path, j)
-                    prev_path = "{}/{}".format(path, table[val])
-                    errors.append("value.notunique :: value: {} : {} : {}".format(val, curr_path, prev_path))
+                    curr_path = u"{}/{}".format(path, j)
+                    prev_path = u"{}/{}".format(path, table[val].encode('unicode_escape'))
+                    errors.append(u"value.notunique :: value: {} : {} : {}".format(val, curr_path, prev_path))
                 else:
                     table[val] = j
 
     def _validate_mapping(self, value, rule, path, errors=[], done=None):
         Log.debug("Validate mapping")
-        Log.debug(" + Data: {}".format(value))
-        Log.debug(" + Rule: {}".format(rule))
-        Log.debug(" + RuleType: {}".format(rule._type))
-        Log.debug(" + Path: {}".format(path))
-        Log.debug(" + Seq: {}".format(rule._sequence))
-        Log.debug(" + Map: {}".format(rule._mapping))
+        Log.debug(u" + Data: {}".format(value))
+        Log.debug(u" + Rule: {}".format(rule))
+        Log.debug(u" + RuleType: {}".format(rule._type))
+        Log.debug(u" + Path: {}".format(path))
+        Log.debug(u" + Seq: {}".format(rule._sequence))
+        Log.debug(u" + Map: {}".format(rule._mapping))
 
         if rule._mapping is None:
             Log.debug(" + No rule to apply, prolly because of allowempty: True")
@@ -278,11 +278,11 @@ class Core(object):
             return
 
         if not isinstance(value, dict):
-            errors.append("mapping.value.notdict : {} : {}".format(value, path))
+            errors.append(u"mapping.value.notdict : {} : {}".format(value, path))
             return
 
         m = rule._mapping
-        Log.debug(" + RuleMapping: {}".format(m))
+        Log.debug(u" + RuleMapping: {}".format(m))
 
         if rule._range is not None:
             r = rule._range
@@ -298,42 +298,42 @@ class Core(object):
 
         for k, rr in m.items():
             if rr._required and k not in value:
-                errors.append("required.nokey : {} : {}".format(k, path))
+                errors.append(u"required.nokey : {} : {}".format(k, path))
             if k not in value and rr._default is not None:
                 value[k] = rr._default
 
         for k, v in value.items():
             r = m.get(k, None)
-            Log.debug(" + m: {}".format(m))
-            Log.debug(" + rr: {} {}".format(k, v))
-            Log.debug(" + r: {}".format(r))
+            Log.debug(u" + m: {}".format(m))
+            Log.debug(u" + rr: {} {}".format(k, v))
+            Log.debug(u" + r: {}".format(r))
 
             regex_mappings = [(regex_rule, re.match(regex_rule._map_regex_rule, str(k))) for regex_rule in rule._regex_mappings]
-            Log.debug(" + Mapping Regex matches: {}".format(regex_mappings))
+            Log.debug(u" + Mapping Regex matches: {}".format(regex_mappings))
 
             if any(regex_mappings):
                 # Found atleast one that matches a mapping regex
                 for mm in regex_mappings:
                     if mm[1]:
-                        Log.debug(" + Matching regex patter: {}".format(mm[0]))
-                        self._validate(v, mm[0], "{}/{}".format(path, k), errors, done)
+                        Log.debug(u" + Matching regex patter: {}".format(mm[0]))
+                        self._validate(v, mm[0], u"{}/{}".format(path, k), errors, done)
             elif r is None:
                 if not rule._allowempty_map:
-                    errors.append("key.undefined : {} : {}".format(k, path))
+                    errors.append(u"key.undefined : {} : {}".format(k, path))
             else:
                 if not r._schema:
                     # validate recursively
-                    Log.debug("Core Map: validate recursively: {}".format(r))
-                    self._validate(v, r, "{}/{}".format(path, k), errors, done)
+                    Log.debug(u"Core Map: validate recursively: {}".format(r))
+                    self._validate(v, r, u"{}/{}".format(path, k), errors, done)
                 else:
-                    print(" * Something is ignored Oo : {}".format(r))
+                    print(u" * Something is ignored Oo : {}".format(r))
 
     def _validate_scalar(self, value, rule, path, errors=[], done=None):
         Log.debug("Validate scalar")
-        Log.debug(" # {}".format(value))
-        Log.debug(" # {}".format(rule))
-        Log.debug(" # {}".format(rule._type))
-        Log.debug(" # {}".format(path))
+        Log.debug(u" # {}".format(value))
+        Log.debug(u" # {}".format(rule))
+        Log.debug(u" # {}".format(rule._type))
+        Log.debug(u" # {}".format(path))
 
         if not rule._sequence is None:
             raise CoreError("found sequence when validating for scalar")
@@ -345,7 +345,7 @@ class Core(object):
 
         if rule._enum is not None:
             if value not in rule._enum:
-                errors.append("enum.notexists : {} : {}".format(value, path))
+                errors.append(u"enum.notexists : {} : {}".format(value, path))
 
         # Set default value
         if rule._default and value is None:
@@ -359,7 +359,7 @@ class Core(object):
         if rule._pattern is not None:
             res = re.match(rule._pattern, str(value))
             if res is None:  # Not matching
-                errors.append("pattern.unmatch : {} --> {} : {}".format(rule._pattern, value, path))
+                errors.append(u"pattern.unmatch : {} --> {} : {}".format(rule._pattern, value, path))
 
         if rule._range is not None:
             if not isScalar(value):
@@ -390,54 +390,56 @@ class Core(object):
             L = len(value)
 
             if l.get("max", None) is not None and l["max"] < L:
-                errors.append("length.toolong : {} < {} : {}".format(l["max"], L, path))
+                errors.append(u"length.toolong : {} < {} : {}".format(l["max"], L, path))
             if l.get("min", None) is not None and l["min"] > L:
-                errors.append("length.tooshort : {} > {} : {}".format(l["min"], L, path))
+                errors.append(u"length.tooshort : {} > {} : {}".format(l["min"], L, path))
             if l.get("max-ex", None) is not None and l["max-ex"] <= L:
-                errors.append("length.toolong-ex : {} <= {} : {}".format(l["max-ex"], L, path))
+                errors.append(u"length.toolong-ex : {} <= {} : {}".format(l["max-ex"], L, path))
             if l.get("min-ex", None) is not None and l["min-ex"] >= L:
-                errors.append("length.tooshort-ex : {} >= {} : {}".format(l["min-ex"], L, path))
+                errors.append(u"length.tooshort-ex : {} >= {} : {}".format(l["min-ex"], L, path))
 
     def _validate_range(self, max_, min_, max_ex, min_ex, errors, value, path, prefix):
         ##########
         # Test max
-        Log.debug("Validate range : {} : {} : {} : {} : {} : {}".format(max_, min_, max_ex, min_ex, value, path))
+        Log.debug(u"Validate range : {} : {} : {} : {} : {} : {}".format(max_, min_, max_ex, min_ex, value, path))
 
         if max_ is not None:
             if not isinstance(max_, int):
                 raise Exception("INTERNAL ERROR: variable 'max' not of 'int' type")
 
             if max_ <= value:
-                errors.append("{}.range.toolarge : {} < {} : {}".format(prefix, max_, value, path))
+                errors.append(u"{}.range.toolarge : {} < {} : {}".format(prefix, max_, value, path))
 
         if min_ is not None:
             if not isinstance(min_, int):
                 raise Exception("INTERNAL ERROR: variable 'min_' not of 'int' type")
 
             if min_ >= value:
-                errors.append("{}.range.toosmall : {} > {} : {}".format(prefix, min_, value, path))
+                errors.append(u"{}.range.toosmall : {} > {} : {}".format(prefix, min_, value, path))
 
         if max_ex is not None:
             if not isinstance(max_ex, int):
                 raise Exception("INTERNAL ERROR: variable 'max_ex' not of 'int' type")
 
             if max_ex < value:
-                errors.append("{}.range.tolarge-ex : {} <= {} : {}".format(prefix, max_ex, value, path))
+                errors.append(u"{}.range.tolarge-ex : {} <= {} : {}".format(prefix, max_ex, value, path))
 
         if min_ex is not None:
             if not isinstance(min_ex, int):
                 raise Exception("INTERNAL ERROR: variable 'min_ex' not of 'int' type")
 
             if min_ex > value:
-                errors.append("{}.range.toosmall-ex : {} >= {} : {}".format(prefix, min_ex, value, path))
+                errors.append(u"{}.range.toosmall-ex : {} >= {} : {}".format(prefix, min_ex, value, path))
 
     def _validate_scalar_type(self, value, t, errors, path):
-        Log.debug("Core scalar: validating scalar type : {}".format(t))
-        Log.debug("Core scalar: scalar type: {}".format(type(value)))
+        Log.debug(u"Core scalar: validating scalar type : {}".format(t))
+        Log.debug(u"Core scalar: scalar type: {}".format(type(value)))
 
         try:
             if not tt[t](value):
-                errors.append("Value: {} is not of type '{}' : {}".format(value, t, path))
+                errors.append(u"Value: {} is not of type '{}' : {}".format(value, t, path))
         except Exception:
             # Type not found in map
+            path = path.encode('unicode_escape')
+            value = value.encode('unicode_escape')
             raise Exception("Unknown type check: {} : {} : {}".format(path, value, t))
