@@ -2,6 +2,18 @@
 Release Notes
 =============
 
+v14.06.1.2
+==========
+
+ - Ensure custom version is listed in setup.py so pip knows about it
+
+v14.06.1.1
+==========
+
+ - All logging now spits out a unicode string
+ - Error messages must be str objects in order for the message to be raised, so unicode characters are escaped
+ - isString(obj) returns True if obj is a basestring rather than strictly a str
+
 v14.06.1
 ========
 
